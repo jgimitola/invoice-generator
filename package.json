@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "date-fns": "^3.6.0",
+    "docxtemplater": "^3.49.1",
+    "pizzip": "^3.1.7",
+    "yargs": "^17.7.2"
+  }
+}
