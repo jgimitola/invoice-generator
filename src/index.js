@@ -5,6 +5,7 @@ const { startOfMonth } = require("date-fns/startOfMonth");
 const { endOfMonth } = require("date-fns/endOfMonth");
 const { format } = require("date-fns/format");
 const yargs = require("yargs");
+const { addMonths } = require("date-fns");
 
 // Read the docx file as binary
 function loadFile(filepath) {
@@ -54,6 +55,13 @@ const argv = yargs
     type: "string",
     demandOption: true,
   })
+  .option("monthOffset", {
+    alias: "mO",
+    description: "Month modifier 1, 2, -1, -2, etc",
+    type: "number",
+    default: 0,
+    demandOption: true,
+  })
   .option("values", {
     alias: "v",
     description: "Values to replace in the format key1=value1,key2=value2",
@@ -68,7 +76,7 @@ const FORMAT = "MM/dd/yyyy";
 const TODAY = new Date();
 
 // Parse values from the command-line argument
-const values = argv.values.split(",").reduce(
+let values = argv.values.split(",").reduce(
   (acc, pair) => {
     const [key, value] = pair.split("=");
     acc[key] = value;
@@ -79,6 +87,20 @@ const values = argv.values.split(",").reduce(
     dueDate: format(endOfMonth(TODAY), FORMAT),
   }
 );
+
+values = { ...values, monthOffset: argv.monthOffset };
+
+if (values.monthOffset !== 0) {
+  const adjustedDate = addMonths(TODAY, values.monthOffset);
+
+  values = {
+    ...values,
+    dateOfIssue: format(startOfMonth(adjustedDate), FORMAT),
+    dueDate: format(endOfMonth(adjustedDate), FORMAT),
+  };
+}
+
+console.log({ values });
 
 // Call the function with the provided arguments
 replaceValuesInDocx(argv.template, argv.output, values)
