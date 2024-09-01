@@ -41,72 +41,80 @@ async function replaceValuesInDocx(templatePath, outputPath, values) {
   fs.writeFileSync(outputPath, buf);
 }
 
-// Configure yargs to handle command-line arguments
-const argv = yargs
-  .option("template", {
-    alias: "t",
-    description: "Path to the template file",
-    type: "string",
-    demandOption: true,
-  })
-  .option("output", {
-    alias: "o",
-    description: "Path to the output file",
-    type: "string",
-    demandOption: true,
-  })
-  .option("monthOffset", {
-    alias: "mO",
-    description: "Month modifier 1, 2, -1, -2, etc",
-    type: "number",
-    default: 0,
-    demandOption: true,
-  })
-  .option("values", {
-    alias: "v",
-    description: "Values to replace in the format key1=value1,key2=value2",
-    type: "string",
-    demandOption: true,
-  })
-  .help()
-  .alias("help", "h").argv;
+function computeArguments() {
+  // Configure yargs to handle command-line arguments
+  const argv = yargs
+    .option("template", {
+      alias: "t",
+      description: "Path to the template file",
+      type: "string",
+      demandOption: true,
+    })
+    .option("output", {
+      alias: "o",
+      description: "Path to the output file",
+      type: "string",
+      demandOption: true,
+    })
+    .option("monthOffset", {
+      alias: "mO",
+      description: "Month modifier 1, 2, -1, -2, etc",
+      type: "number",
+      default: 0,
+      demandOption: true,
+    })
+    .option("values", {
+      alias: "v",
+      description: "Values to replace in the format key1=value1,key2=value2",
+      type: "string",
+      demandOption: true,
+    })
+    .help()
+    .alias("help", "h").argv;
 
-const FORMAT = "MM/dd/yyyy";
+  const FORMAT = "MM/dd/yyyy";
 
-const TODAY = new Date();
+  const TODAY = new Date();
 
-// Parse values from the command-line argument
-let values = argv.values.split(",").reduce(
-  (acc, pair) => {
-    const [key, value] = pair.split("=");
-    acc[key] = value;
-    return acc;
-  },
-  {
-    dateOfIssue: format(startOfMonth(TODAY), FORMAT),
-    dueDate: format(endOfMonth(TODAY), FORMAT),
+  // Parse values from the command-line argument
+  let values = argv.values.split(",").reduce(
+    (acc, pair) => {
+      const [key, value] = pair.split("=");
+      acc[key] = value;
+      return acc;
+    },
+    {
+      dateOfIssue: format(startOfMonth(TODAY), FORMAT),
+      dueDate: format(endOfMonth(TODAY), FORMAT),
+    }
+  );
+
+  values = { ...values, monthOffset: argv.monthOffset };
+
+  if (values.monthOffset !== 0) {
+    const adjustedDate = addMonths(TODAY, values.monthOffset);
+
+    values = {
+      ...values,
+      dateOfIssue: format(startOfMonth(adjustedDate), FORMAT),
+      dueDate: format(endOfMonth(adjustedDate), FORMAT),
+    };
   }
-);
 
-values = { ...values, monthOffset: argv.monthOffset };
-
-if (values.monthOffset !== 0) {
-  const adjustedDate = addMonths(TODAY, values.monthOffset);
-
-  values = {
-    ...values,
-    dateOfIssue: format(startOfMonth(adjustedDate), FORMAT),
-    dueDate: format(endOfMonth(adjustedDate), FORMAT),
-  };
+  return { argv, values };
 }
 
-console.log({ values });
+function main() {
+  const { argv, values } = computeArguments();
 
-// Call the function with the provided arguments
-replaceValuesInDocx(argv.template, argv.output, values)
-  .then(() => {
-    console.log("DOCX created successfully");
-  })
-  .catch((err) => {
-    console.error("Error creating DOCX:", err);
-  });
+  // Call the function with the provided arguments
+  replaceValuesInDocx(argv.template, argv.output, values)
+    .then(() => {
+      console.log("DOCX created successfully");
+    })
+    .catch((err) => {
+      console.error("Error creating DOCX:", err);
+    });
+}
+
+main();
